@@ -1,0 +1,102 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* Web fonts to match celaut-project.github.io (Playfair Display + Lato). */
+@import url('https://fonts.googleapis.com/css2?family=Lato:wght@400;700&family=Playfair+Display:wght@500;700&display=swap');
+
+@layer base {
+  :root {
+    /* Typography — Playfair Display for headings, Lato for body, matching
+       the celaut-project.github.io public site. */
+    --font-heading: 'Playfair Display', 'Inter', system-ui, serif;
+    --font-body: 'Lato', 'Inter', system-ui, sans-serif;
+
+    /* Palette ported from celaut-project.github.io design tokens:
+         background  #f9eee7  (warm cream)
+         foreground  #1d4241  (deep teal)
+         accent      #ef9c82  (soft coral) — hover #e88a6f
+         muted text  #576c6b
+         border      #e0d5cb
+    */
+    --background: 24 60% 94%;
+    --foreground: 179 39% 19%;
+
+    --card: 0 0% 100%;
+    --card-foreground: 179 39% 19%;
+
+    --popover: 0 0% 100%;
+    --popover-foreground: 179 39% 19%;
+
+    --primary: 15 80% 73%;
+    --primary-foreground: 179 39% 19%;
+
+    --secondary: 28 22% 84%;
+    --secondary-foreground: 179 39% 19%;
+
+    --muted: 28 30% 90%;
+    --muted-foreground: 178 10% 38%;
+
+    --accent: 15 80% 73%;
+    --accent-foreground: 179 39% 19%;
+
+    --destructive: 0 72% 51%;
+    --destructive-foreground: 0 0% 100%;
+
+    --border: 28 22% 84%;
+    --input: 28 22% 84%;
+    --ring: 15 80% 73%;
+
+    --radius: 0.75rem;
+  }
+
+  .dark {
+    /* Dark theme uses the celaut deep-teal as the surface and keeps the
+       coral accent. Foreground is the warm cream so contrast stays high. */
+    --background: 179 39% 14%;
+    --foreground: 24 60% 94%;
+
+    --card: 179 39% 17%;
+    --card-foreground: 24 60% 94%;
+
+    --popover: 179 39% 17%;
+    --popover-foreground: 24 60% 94%;
+
+    --primary: 15 80% 73%;
+    --primary-foreground: 179 39% 19%;
+
+    --secondary: 179 30% 22%;
+    --secondary-foreground: 24 60% 94%;
+
+    --muted: 179 30% 22%;
+    --muted-foreground: 24 25% 78%;
+
+    --accent: 15 80% 73%;
+    --accent-foreground: 179 39% 19%;
+
+    --destructive: 0 72% 51%;
+    --destructive-foreground: 0 0% 98%;
+
+    --border: 179 25% 28%;
+    --input: 179 25% 28%;
+    --ring: 15 80% 73%;
+  }
+}
+
+@layer base {
+  * {
+    @apply border-border;
+  }
+  body {
+    @apply bg-background text-foreground;
+    font-family: var(--font-body);
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+  }
+  h1, h2, h3, h4, h5, h6 {
+    font-family: var(--font-heading);
+    font-weight: 700;
+    @apply text-foreground;
+    letter-spacing: -0.02em;
+  }
+}

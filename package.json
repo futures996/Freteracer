@@ -1,0 +1,49 @@
+{
+	"name": "token-minter",
+	"version": "0.0.1",
+	"private": true,
+	"scripts": {
+		"dev": "vite dev",
+		"build": "vite build",
+		"deploy": "npm run build && npx gh-pages -d build -t",
+		"preview": "vite preview",
+		"check": "svelte-kit sync && svelte-check --tsconfig ./tsconfig.json",
+		"check:watch": "svelte-kit sync && svelte-check --tsconfig ./tsconfig.json --watch",
+		"test": "vitest"
+	},
+	"devDependencies": {
+		"@fleet-sdk/mock-chain": "^0.12.0",
+		"@internationalized/date": "^3.6.0",
+		"@sveltejs/adapter-auto": "^2.0.0",
+		"@sveltejs/kit": "^1.20.4",
+		"autoprefixer": "^10.4.20",
+		"bits-ui": "^0.22.0",
+		"clsx": "^2.1.1",
+		"embla-carousel-svelte": "^8.5.1",
+		"formsnap": "^1.0.1",
+		"lucide-svelte": "^0.469.0",
+		"paneforge": "^0.0.6",
+		"svelte": "^4.0.5",
+		"svelte-check": "^3.4.3",
+		"sveltekit-superforms": "^2.22.1",
+		"tailwind-merge": "^2.6.0",
+		"tailwind-variants": "^0.3.0",
+		"tailwindcss": "^3.4.9",
+		"tslib": "^2.4.1",
+		"typescript": "^5.0.0",
+		"vite": "^4.5.2",
+		"vitest": "^3.2.4",
+		"zod": "^3.24.1"
+	},
+	"type": "module",
+	"dependencies": {
+		"@fleet-sdk/compiler": "^0.12.0",
+		"@fleet-sdk/core": "^0.12.0",
+		"@scure/base": "^1.1.3",
+		"@sveltejs/adapter-static": "^2.0.3",
+		"date-fns": "^4.1.0",
+		"mode-watcher": "^0.5.0",
+		"update": "^0.7.4",
+		"wallet-svelte-component": "github:ergo-basics/wallet-svelte-component"
+	}
+}
