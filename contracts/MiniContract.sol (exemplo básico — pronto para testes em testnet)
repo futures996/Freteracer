@@ -1,0 +1,103 @@
+// SPDX-License-Identifier: MIT
+pragma solidity ^0.8.19;
+
+/// @title MiniContract for milestone-based freight payments
+/// @notice Exemplo didático: depósito, liberação por marcos, disputa e retirada proporcional
+contract MiniContract {
+    address public owner; // empresa que cria o contrato
+    address public carrier; // caminhoneiro
+    uint256 public totalValue;
+    uint256 public released;
+    bool public disputed;
+
+    struct Milestone {
+        string description;
+        uint256 value;
+        bool completed;
+        bool released;
+    }
+
+    Milestone[] public milestones;
+
+    event Deposited(address indexed from, uint256 amount);
+    event MilestoneCompleted(uint256 indexed idx, address indexed by);
+    event MilestoneReleased(uint256 indexed idx, uint256 amount);
+    event DisputeRaised(address indexed by, string reason);
+    event Withdrawn(address indexed to, uint256 amount);
+
+    modifier onlyOwner() {
+        require(msg.sender == owner, "only owner");
+        _;
+    }
+
+    modifier onlyCarrier() {
+        require(msg.sender == carrier, "only carrier");
+        _;
+    }
+
+    constructor(address _carrier, string[] memory _descriptions, uint256[] memory _values) {
+        require(_descriptions.length == _values.length, "length mismatch");
+        owner = msg.sender;
+        carrier = _carrier;
+        for (uint256 i = 0; i < _values.length; i++) {
+            milestones.push(Milestone({
+                description: _descriptions[i],
+                value: _values[i],
+                completed: false,
+                released: false
+            }));
+            totalValue += _values[i];
+        }
+    }
+
+    // Empresa deposita o valor total (ou parcial) para garantir o pagamento
+    receive() external payable {
+        emit Deposited(msg.sender, msg.value);
+    }
+
+    function deposit() external payable onlyOwner {
+        emit Deposited(msg.sender, msg.value);
+    }
+
+    // Caminhoneiro marca marco como concluído
+    function markMilestoneCompleted(uint256 idx) external onlyCarrier {
+        require(idx < milestones.length, "invalid idx");
+        require(!milestones[idx].completed, "already completed");
+        milestones[idx].completed = true;
+        emit MilestoneCompleted(idx, msg.sender);
+    }
+
+    // Orquestrador/backend (ou owner) valida e libera pagamento do marco
+    function releaseMilestone(uint256 idx) external onlyOwner {
+        require(idx < milestones.length, "invalid idx");
+        Milestone storage m = milestones[idx];
+        require(m.completed, "not completed");
+        require(!m.released, "already released");
+        require(address(this).balance >= m.value, "insufficient funds");
+        m.released = true;
+        released += m.value;
+        payable(carrier).transfer(m.value);
+        emit MilestoneReleased(idx, m.value);
+    }
+
+    // Permite ao owner ou carrier abrir disputa
+    function raiseDispute(string calldata reason) external {
+        require(msg.sender == owner || msg.sender == carrier, "not authorized");
+        disputed = true;
+        emit DisputeRaised(msg.sender, reason);
+    }
+
+    // Retirada de saldo remanescente para owner (após resolução externa)
+    function withdrawRemaining(address payable to) external onlyOwner {
+        require(!disputed, "in dispute");
+        uint256 balance = address(this).balance;
+        require(balance > 0, "no balance");
+        to.transfer(balance);
+        emit Withdrawn(to, balance);
+    }
+
+    // Leitura de número de marcos
+    function milestonesCount() external view returns (uint256) {
+        return milestones.length;
+    }
+}
