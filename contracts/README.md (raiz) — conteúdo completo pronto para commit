@@ -1,0 +1,156 @@
+# IA Racon / Rede Racon
+
+## Visão Geral
+IA Racon / Rede Racon é um projeto para prospectar empresas e otimizar logística de transporte, conectando empresas e caminhoneiros por meio de mini-contratos inteligentes que suportam pagamentos auditáveis em blockchain e pagamentos P2P. Este repositório descreve requisitos, arquitetura proposta, fluxos de pagamento, pré-requisitos técnicos e roteiro de implementação.
+
+## Objetivos do Projeto
+- Conectar empresas de logística e caminhoneiros com contratos automatizados.
+- Automatizar pagamentos entre contratantes e prestadores via contratos auditáveis.
+- Garantir transparência e rastreabilidade das transações.
+- Suportar múltiplos modelos de pagamento: on‑chain (criptomoedas), off‑chain com liquidação em cripto, e P2P auditável.
+
+---
+
+## Flexibilidade de Pagamentos e Compartilhamento de Cargas
+**Visão:** permitir que pagamentos e responsabilidades de carga sejam distribuídos entre múltiplas empresas e prestadores, mantendo auditabilidade e regras claras no mini‑contrato.
+
+**Modelos suportados**
+| **Modelo** | **Descrição** | **Quando usar** |
+|---|---|---|
+| **Pagamento único on‑chain** | Empresa deposita valor total no mini‑contrato; liberação por marcos. | Contratos simples entre uma empresa e um caminhoneiro. |
+| **Pagamento parcelado por marcos** | Liberações parciais conforme marcos; cada marco tem valor definido. | Rotas longas com entregas parciais. |
+| **Pagamento P2P entre múltiplas partes** | Pagamento direto entre carteiras; mini‑contrato registra acordo e prova. | Acordos entre empresas parceiras e caminhoneiros. |
+| **Liquidação off‑chain com prova on‑chain** | Transferências fora da cadeia; hashes e provas gravadas on‑chain para auditoria. | Reduz custo de gas mantendo rastreabilidade. |
+| **Divisão de carga e receita (multi‑shippers)** | Vários contratantes compartilham uma carga; receita e responsabilidades rateadas por regra. | Consolidação de cargas entre empresas para otimizar frete. |
+
+**Regras e parâmetros essenciais**
+- **Proporção de divisão:** percentual fixo ou fórmula baseada em distância, peso ou prioridade.
+- **Responsabilidade por marcos:** cada parte pode ser responsável por marcos específicos (ex.: coleta, transbordo, entrega final).
+- **Garantias e depósitos:** cada contratante pode depositar sua parcela no mini‑contrato; saque liberado conforme marcos validados.
+- **Fallback e disputa:** regras de arbitragem definidas no contrato; possibilidade de reembolso proporcional se parte do serviço falhar.
+- **Registro de provas:** documentos e comprovantes armazenados em IPFS; hashes gravados no contrato para integridade.
+
+**Exemplo de fluxo (multi‑shipper + P2P)**
+1. Empresas A e B concordam em consolidar carga; definem percentuais 60/40.
+2. Cada empresa deposita sua parcela no mini‑contrato.
+3. Caminhoneiro executa marcos; orquestrador valida e libera pagamentos proporcionais.
+4. Em caso de disputa, arbitragem aplica regras e libera reembolsos proporcionais.
+
+---
+
+## Parâmetros e Pré Requisitos Analisados
+
+### Parâmetros funcionais
+- Interação Empresa ↔ Caminhoneiro: criação, aceitação e execução de mini-contratos.
+- Motor de pagamentos: orquestra pagamentos condicionados ao cumprimento de marcos.
+- Auditabilidade: registros imutáveis das condições e pagamentos.
+- Flexibilidade de escala: suportar grandes e pequenas empresas com volumes variados.
+
+### Requisitos não funcionais
+- Segurança: proteção de chaves privadas, prevenção de fraudes e integridade dos contratos.
+- Privacidade: dados sensíveis (rotas, valores) protegidos; apenas hashes e provas na blockchain.
+- Custo: minimizar taxas de transação (gas) e latência.
+- Usabilidade: interfaces simples para caminhoneiros com conectividade limitada.
+- Conformidade: atender requisitos legais locais sobre pagamentos e faturamento.
+
+---
+
+## Arquitetura Proposta
+1. **Frontend**  
+   - Painel para empresas (criar contratos, acompanhar entregas).  
+   - App leve para caminhoneiros (aceitar contratos, confirmar marcos, solicitar pagamento).  
+2. **Backend / Orquestrador**  
+   - API REST/GraphQL que gerencia estados dos mini-contratos, valida eventos e aciona pagamentos.  
+   - Módulo de orquestração de eventos off‑chain e on‑chain.  
+3. **Camada de Contratos Inteligentes**  
+   - Mini‑contratos padronizados para: criação, depósito em garantia, liberação por marcos, disputa e reembolso.  
+4. **Camada de Pagamento**  
+   - Gateways on‑chain (wallets, bridges) e integração P2P.  
+5. **Armazenamento**  
+   - Dados transacionais e documentos em banco tradicional; provas e hashes na blockchain; arquivos grandes em IPFS/Armazenamento descentralizado.  
+6. **Monitoramento e Auditoria**  
+   - Logs imutáveis, dashboards de compliance e relatórios de auditoria.
+
+---
+
+## Fluxos de Pagamento Essenciais
+- Depósito em garantia: empresa deposita valor no mini‑contrato; valor bloqueado até confirmação do serviço.
+- Liberação por marcos: caminhoneiro marca marco como concluído; orquestrador valida e libera pagamento parcial.
+- Pagamento P2P: quando acordado, pagamento direto entre carteiras com registro do acordo no contrato.
+- Disputa: mecanismo de arbitragem com possibilidade de intervenção humana e regras de resolução codificadas.
+
+---
+
+## Tecnologias Sugeridas
+- Smart Contracts: Solidity (EVM) ou Chaincode (Fabric).
+- Backend: Node.js / NestJS ou Python / FastAPI.
+- Frontend: React Native para app móvel; React para painel web.
+- Armazenamento descentralizado: IPFS ou Arweave.
+- Carteiras: MetaMask, WalletConnect e wallets móveis leves.
+- Orquestração: Kafka/RabbitMQ.
+- CI/CD: GitHub Actions.
+- Infra: Kubernetes; provedores cloud híbridos.
+
+---
+
+## Segurança e Privacidade
+- Gerenciamento de chaves: HSMs ou serviços de custódia; nunca armazenar chaves em texto.
+- Assinaturas off‑chain: mensagens assinadas para reduzir custos on‑chain.
+- Criptografia: AES para dados em repouso; TLS para trânsito.
+- Auditoria: trilhas de auditoria e provas on‑chain (hashes).
+- Testes: auditoria de contratos, pentests e fuzzing.
+
+---
+
+## Estrutura do Repositório
+- /contracts — contratos inteligentes e scripts de deploy
+- /backend — API e orquestrador de pagamentos
+- /mobile — app para caminhoneiros
+- /web — painel para empresas
+- /docs — especificações, diagramas e requisitos legais
+- /scripts — utilitários e scripts de migração
+- /tests — testes unitários e de integração
+
+---
+
+## Roadmap Inicial
+1. **MVP**
+   - Mini‑contrato básico: depósito, liberação por marco, saque.
+   - Backend simples para criar/monitorar contratos.
+   - App móvel mínimo para aceitar contratos e confirmar marcos.
+2. **Fase 2**
+   - Integração com IPFS e orquestração de pagamentos P2P.
+   - Dashboard para empresas e relatórios de auditoria.
+3. **Fase 3**
+   - Escalonamento para redes L2 ou rede permissionada para consórcios.
+   - Mecanismo de disputa e arbitragem automatizada.
+4. **Fase 4**
+   - Parcerias com gateways de pagamento e integração fiscal completa.
+
+---
+
+## Como Contribuir
+- Abrir issues para bugs, melhorias e propostas de features.
+- Fork o repositório e submeter PRs com testes e documentação.
+- Revisões de segurança: contribuições para auditoria de contratos são bem‑vindas.
+- Use templates de PR e issues no repositório.
+
+---
+
+## Licença e Governança
+- Licença sugerida: MIT ou Apache 2.0.
+- Governança: definir modelo para atualizações de contratos e decisões de rede (comitê técnico ou DAO).
+
+---
+
+## Próximos Passos Imediatos
+- Validar escolha de blockchain (pública L2 vs permissionada).
+- Especificar modelo de dados e eventos de contrato.
+- Criar prova de conceito do mini‑contrato e app móvel mínimo.
+- Preparar documentação legal para pagamentos e faturamento.
+
+---
+
+## Contato e Maintainers
+- **Responsável técnico:** (adicionar nome e e‑mail)
+- **Canal de comunicação:** criar Slack/Discord e issues no GitHub.
