@@ -1,156 +1,195 @@
-# FreteRacer / Rede FreteRacer
+# FreteRacer — Contratos inteligentes
 
-## Visão Geral
-IA Racon / Rede Racon é um projeto para prospectar empresas e otimizar logística de transporte, conectando empresas e caminhoneiros por meio de mini-contratos inteligentes que suportam pagamentos auditáveis em blockchain e pagamentos P2P. Este repositório descreve requisitos, arquitetura proposta, fluxos de pagamento, pré-requisitos técnicos e roteiro de implementação.
+Contratos inteligentes e documentação da **Rede FreteRacer**, uma plataforma para conectar empresas de logística e caminhoneiros por meio de acordos digitais auditáveis.
 
-## Objetivos do Projeto
-- Conectar empresas de logística e caminhoneiros com contratos automatizados.
-- Automatizar pagamentos entre contratantes e prestadores via contratos auditáveis.
-- Garantir transparência e rastreabilidade das transações.
-- Suportar múltiplos modelos de pagamento: on‑chain (criptomoedas), off‑chain com liquidação em cripto, e P2P auditável.
+> **Status:** conceitual / em desenvolvimento. Os fluxos e parâmetros descritos neste documento ainda precisam ser validados antes de qualquer uso em produção.
 
----
+## Visão geral
 
-## Flexibilidade de Pagamentos e Compartilhamento de Cargas
-**Visão:** permitir que pagamentos e responsabilidades de carga sejam distribuídos entre múltiplas empresas e prestadores, mantendo auditabilidade e regras claras no mini‑contrato.
+A Rede FreteRacer pretende representar acordos de transporte em contratos inteligentes, permitindo:
 
-**Modelos suportados**
-| **Modelo** | **Descrição** | **Quando usar** |
-|---|---|---|
-| **Pagamento único on‑chain** | Empresa deposita valor total no mini‑contrato; liberação por marcos. | Contratos simples entre uma empresa e um caminhoneiro. |
-| **Pagamento parcelado por marcos** | Liberações parciais conforme marcos; cada marco tem valor definido. | Rotas longas com entregas parciais. |
-| **Pagamento P2P entre múltiplas partes** | Pagamento direto entre carteiras; mini‑contrato registra acordo e prova. | Acordos entre empresas parceiras e caminhoneiros. |
-| **Liquidação off‑chain com prova on‑chain** | Transferências fora da cadeia; hashes e provas gravadas on‑chain para auditoria. | Reduz custo de gas mantendo rastreabilidade. |
-| **Divisão de carga e receita (multi‑shippers)** | Vários contratantes compartilham uma carga; receita e responsabilidades rateadas por regra. | Consolidação de cargas entre empresas para otimizar frete. |
+- criar e aceitar contratos entre empresas e prestadores;
+- bloquear valores em garantia (escrow);
+- liberar pagamentos conforme marcos da operação;
+- registrar evidências e eventos para auditoria;
+- tratar cancelamentos, falhas e disputas conforme regras previamente definidas.
 
-**Regras e parâmetros essenciais**
-- **Proporção de divisão:** percentual fixo ou fórmula baseada em distância, peso ou prioridade.
-- **Responsabilidade por marcos:** cada parte pode ser responsável por marcos específicos (ex.: coleta, transbordo, entrega final).
-- **Garantias e depósitos:** cada contratante pode depositar sua parcela no mini‑contrato; saque liberado conforme marcos validados.
-- **Fallback e disputa:** regras de arbitragem definidas no contrato; possibilidade de reembolso proporcional se parte do serviço falhar.
-- **Registro de provas:** documentos e comprovantes armazenados em IPFS; hashes gravados no contrato para integridade.
+A blockchain deve armazenar somente os dados necessários para a execução e a auditoria. Dados pessoais, rotas, documentos e outras informações sensíveis devem permanecer fora da cadeia, protegidos por controles de acesso adequados.
 
-**Exemplo de fluxo (multi‑shipper + P2P)**
-1. Empresas A e B concordam em consolidar carga; definem percentuais 60/40.
-2. Cada empresa deposita sua parcela no mini‑contrato.
-3. Caminhoneiro executa marcos; orquestrador valida e libera pagamentos proporcionais.
-4. Em caso de disputa, arbitragem aplica regras e libera reembolsos proporcionais.
+## Modelos de pagamento
 
----
+| Modelo | Descrição | Uso recomendado |
+| --- | --- | --- |
+| Pagamento único on-chain | A empresa deposita o valor total; o contrato libera o pagamento após a conclusão do serviço. | Contratos simples entre uma empresa e um caminhoneiro. |
+| Pagamento por marcos | O valor é dividido em parcelas associadas a etapas da operação. | Rotas longas ou com entregas parciais. |
+| Pagamento entre múltiplas partes | Várias empresas contribuem para o contrato e recebem ou pagam conforme uma regra definida. | Cargas consolidadas e operações compartilhadas. |
+| Liquidação off-chain com prova on-chain | A transferência ocorre fora da blockchain; o contrato registra hashes, assinaturas ou provas verificáveis. | Reduzir custos mantendo rastreabilidade. |
+| Pagamento P2P | As partes transferem valores diretamente entre carteiras, enquanto o contrato registra o acordo e seus eventos. | Operações em que as partes dispensam custódia on-chain. |
 
-## Parâmetros e Pré Requisitos Analisados
+A escolha do modelo deve considerar custos, liquidez, disponibilidade de carteiras, requisitos legais e risco operacional. Nenhum modelo deve ser habilitado em produção sem testes e revisão jurídica.
 
-### Parâmetros funcionais
-- Interação Empresa ↔ Caminhoneiro: criação, aceitação e execução de mini-contratos.
-- Motor de pagamentos: orquestra pagamentos condicionados ao cumprimento de marcos.
-- Auditabilidade: registros imutáveis das condições e pagamentos.
-- Flexibilidade de escala: suportar grandes e pequenas empresas com volumes variados.
+## Regras do contrato
 
-### Requisitos não funcionais
-- Segurança: proteção de chaves privadas, prevenção de fraudes e integridade dos contratos.
-- Privacidade: dados sensíveis (rotas, valores) protegidos; apenas hashes e provas na blockchain.
-- Custo: minimizar taxas de transação (gas) e latência.
-- Usabilidade: interfaces simples para caminhoneiros com conectividade limitada.
-- Conformidade: atender requisitos legais locais sobre pagamentos e faturamento.
+Cada contrato deve definir, no mínimo:
 
----
+- **Partes:** endereços ou identificadores das empresas, prestadores e demais participantes.
+- **Valor e moeda:** ativo utilizado, valor total, parcelas e eventuais taxas.
+- **Marcos:** etapas, responsáveis, evidências exigidas e valor de cada liberação.
+- **Prazo:** datas de início, conclusão, expiração e janela para contestação.
+- **Garantia:** valor depositado, condições de bloqueio e regras de saque.
+- **Cancelamento:** condições para cancelamento e cálculo de reembolso.
+- **Disputa:** autoridade ou mecanismo de arbitragem, prazos e poderes de cada participante.
+- **Evidências:** tipo de documento aceito e hash registrado no contrato.
+- **Eventos:** alterações de estado, depósitos, liberações, reembolsos e decisões de disputa.
 
-## Arquitetura Proposta
-1. **Frontend**  
-   - Painel para empresas (criar contratos, acompanhar entregas).  
-   - App leve para caminhoneiros (aceitar contratos, confirmar marcos, solicitar pagamento).  
-2. **Backend / Orquestrador**  
-   - API REST/GraphQL que gerencia estados dos mini-contratos, valida eventos e aciona pagamentos.  
-   - Módulo de orquestração de eventos off‑chain e on‑chain.  
-3. **Camada de Contratos Inteligentes**  
-   - Mini‑contratos padronizados para: criação, depósito em garantia, liberação por marcos, disputa e reembolso.  
-4. **Camada de Pagamento**  
-   - Gateways on‑chain (wallets, bridges) e integração P2P.  
-5. **Armazenamento**  
-   - Dados transacionais e documentos em banco tradicional; provas e hashes na blockchain; arquivos grandes em IPFS/Armazenamento descentralizado.  
-6. **Monitoramento e Auditoria**  
-   - Logs imutáveis, dashboards de compliance e relatórios de auditoria.
+As regras devem ser determinísticas, documentadas e compatíveis com as limitações da rede escolhida. Um orquestrador off-chain pode sugerir ou validar eventos, mas não deve conseguir movimentar valores sem autorização prevista no contrato.
 
----
+## Exemplo de operação multiempresa
 
-## Fluxos de Pagamento Essenciais
-- Depósito em garantia: empresa deposita valor no mini‑contrato; valor bloqueado até confirmação do serviço.
-- Liberação por marcos: caminhoneiro marca marco como concluído; orquestrador valida e libera pagamento parcial.
-- Pagamento P2P: quando acordado, pagamento direto entre carteiras com registro do acordo no contrato.
-- Disputa: mecanismo de arbitragem com possibilidade de intervenção humana e regras de resolução codificadas.
+1. As empresas A e B definem uma divisão de custos e responsabilidades de 60% e 40%.
+2. Cada empresa deposita sua parcela no contrato.
+3. O caminhoneiro executa os marcos definidos e envia as evidências necessárias.
+4. O contrato, ou uma autoridade autorizada conforme as regras, valida cada marco.
+5. Os pagamentos são liberados proporcionalmente ao cumprimento dos marcos.
+6. Em caso de contestação, os valores permanecem bloqueados até a resolução da disputa.
 
----
+## Arquitetura prevista
 
-## Tecnologias Sugeridas
-- Smart Contracts: Solidity (EVM) ou Chaincode (Fabric).
-- Backend: Node.js / NestJS ou Python / FastAPI.
-- Frontend: React Native para app móvel; React para painel web.
-- Armazenamento descentralizado: IPFS ou Arweave.
-- Carteiras: MetaMask, WalletConnect e wallets móveis leves.
-- Orquestração: Kafka/RabbitMQ.
-- CI/CD: GitHub Actions.
-- Infra: Kubernetes; provedores cloud híbridos.
+1. **Frontend**
+   - Painel web para empresas criarem contratos e acompanharem operações.
+   - Aplicativo leve para caminhoneiros aceitarem contratos e confirmarem marcos.
+2. **Backend e orquestrador**
+   - API para gerenciar usuários, contratos, evidências e estados fora da cadeia.
+   - Consumidor de eventos para acompanhar transações e atualizar o estado da operação.
+3. **Contratos inteligentes**
+   - Criação e aceite do contrato.
+   - Depósito em garantia.
+   - Liberação por marcos.
+   - Cancelamento, reembolso e disputa.
+4. **Armazenamento**
+   - Banco de dados para dados operacionais.
+   - Armazenamento de documentos fora da cadeia, como IPFS ou serviço equivalente.
+   - Hashes e referências verificáveis registrados na blockchain.
+5. **Monitoramento**
+   - Logs, alertas, métricas e trilhas de auditoria.
 
----
+## Fluxos principais
 
-## Segurança e Privacidade
-- Gerenciamento de chaves: HSMs ou serviços de custódia; nunca armazenar chaves em texto.
-- Assinaturas off‑chain: mensagens assinadas para reduzir custos on‑chain.
-- Criptografia: AES para dados em repouso; TLS para trânsito.
-- Auditoria: trilhas de auditoria e provas on‑chain (hashes).
-- Testes: auditoria de contratos, pentests e fuzzing.
+### Depósito em garantia
 
----
+A empresa deposita o valor acordado no contrato. O valor fica bloqueado até que um marco seja validado, uma disputa seja resolvida ou uma regra de expiração seja acionada.
 
-## Estrutura do Repositório
-- /contracts — contratos inteligentes e scripts de deploy
-- /backend — API e orquestrador de pagamentos
-- /mobile — app para caminhoneiros
-- /web — painel para empresas
-- /docs — especificações, diagramas e requisitos legais
-- /scripts — utilitários e scripts de migração
-- /tests — testes unitários e de integração
+### Liberação por marco
 
----
+O responsável envia a confirmação e as evidências do marco. Após a validação definida no contrato, o valor correspondente é liberado ao prestador.
 
-## Roadmap Inicial
-1. **MVP**
-   - Mini‑contrato básico: depósito, liberação por marco, saque.
-   - Backend simples para criar/monitorar contratos.
-   - App móvel mínimo para aceitar contratos e confirmar marcos.
-2. **Fase 2**
-   - Integração com IPFS e orquestração de pagamentos P2P.
-   - Dashboard para empresas e relatórios de auditoria.
-3. **Fase 3**
-   - Escalonamento para redes L2 ou rede permissionada para consórcios.
-   - Mecanismo de disputa e arbitragem automatizada.
-4. **Fase 4**
-   - Parcerias com gateways de pagamento e integração fiscal completa.
+### Cancelamento e reembolso
 
----
+O contrato deve especificar quem pode cancelar, quais prazos se aplicam e como o saldo será distribuído. Essas regras devem ser testadas para evitar perda ou bloqueio indevido de valores.
 
-## Como Contribuir
-- Abrir issues para bugs, melhorias e propostas de features.
-- Fork o repositório e submeter PRs com testes e documentação.
-- Revisões de segurança: contribuições para auditoria de contratos são bem‑vindas.
-- Use templates de PR e issues no repositório.
+### Disputa
 
----
+Enquanto uma disputa estiver aberta, os valores relacionados devem permanecer bloqueados. A resolução deve registrar a decisão, a autoridade responsável e os pagamentos ou reembolsos resultantes.
 
-## Licença e Governança
-- Licença sugerida: MIT ou Apache 2.0.
-- Governança: definir modelo para atualizações de contratos e decisões de rede (comitê técnico ou DAO).
+## Segurança e privacidade
 
----
+- Nunca armazene chaves privadas em código, arquivos versionados ou variáveis sem proteção.
+- Use carteiras institucionais, HSM ou serviço de custódia quando necessário.
+- Exija assinaturas para ações sensíveis e valide nonce, prazo e domínio da mensagem.
+- Restrinja funções administrativas e utilize controle de acesso com múltiplas assinaturas quando apropriado.
+- Não grave dados pessoais ou documentos diretamente na blockchain.
+- Use TLS em trânsito e criptografia em repouso para dados off-chain.
+- Teste contratos com testes unitários, testes de integração, fuzzing e análise estática.
+- Faça revisão independente e auditoria de segurança antes de disponibilizar contratos com valores reais.
+- Defina procedimentos para atualização, pausa de emergência e recuperação de incidentes.
 
-## Próximos Passos Imediatos
-- Validar escolha de blockchain (pública L2 vs permissionada).
-- Especificar modelo de dados e eventos de contrato.
-- Criar prova de conceito do mini‑contrato e app móvel mínimo.
-- Preparar documentação legal para pagamentos e faturamento.
+## Tecnologias consideradas
 
----
+As tecnologias abaixo são opções, não dependências definitivas do projeto:
 
-## Contato e Maintainers
-- **Responsável técnico:** (adicionar nome e e‑mail)
-- **Canal de comunicação:** criar Slack/Discord e issues no GitHub.
+- **Contratos:** Solidity em uma rede compatível com EVM ou Chaincode em Hyperledger Fabric.
+- **Backend:** Node.js/NestJS ou Python/FastAPI.
+- **Frontend:** React para o painel web e React Native para o aplicativo móvel.
+- **Armazenamento:** banco de dados tradicional e IPFS ou Arweave para documentos, quando aplicável.
+- **Carteiras:** WalletConnect, MetaMask ou solução compatível com a rede escolhida.
+- **Mensageria:** Kafka ou RabbitMQ, caso o volume de eventos exija processamento assíncrono.
+- **CI/CD:** GitHub Actions.
+
+A stack definitiva deve ser escolhida após a definição da rede, do modelo de custódia, dos requisitos de privacidade e dos custos operacionais.
+
+## Estrutura do repositório
+
+```text
+/contracts  Contratos inteligentes e scripts de deploy
+/backend    API e orquestrador
+/mobile     Aplicativo para caminhoneiros
+/web        Painel para empresas
+/docs       Especificações, diagramas e requisitos legais
+/scripts    Utilitários e scripts de migração
+/tests      Testes unitários e de integração
+```
+
+## Roadmap
+
+### MVP
+
+- Definir a rede e o ativo de pagamento.
+- Implementar contrato básico com depósito, marcos, liberação e saque.
+- Criar testes automatizados e uma rede de testes.
+- Implementar uma API mínima para criação e acompanhamento de contratos.
+
+### Fase 2
+
+- Integrar armazenamento de evidências e hashes.
+- Adicionar painel web e aplicativo móvel.
+- Implementar indexação e monitoramento de eventos.
+
+### Fase 3
+
+- Adicionar operações com múltiplas partes.
+- Implementar cancelamento, reembolso e disputa.
+- Avaliar rede L2 ou rede permissionada conforme volume e requisitos de privacidade.
+
+### Fase 4
+
+- Integrar gateways de pagamento.
+- Completar controles fiscais, de compliance e de proteção de dados.
+- Realizar auditoria independente antes da operação em produção.
+
+## Desenvolvimento e testes
+
+Antes de usar uma rede pública:
+
+1. compile os contratos com a versão de compilador fixada;
+2. execute os testes automatizados;
+3. valide os fluxos de sucesso, falha, expiração e disputa;
+4. teste permissões, reentrância, manipulação de preços e outras ameaças relevantes;
+5. faça deploy somente em uma rede de testes;
+6. revise o código e os resultados da auditoria.
+
+Os comandos de instalação, teste e deploy devem ser adicionados aqui quando a stack do projeto estiver definida.
+
+## Contribuição
+
+1. Abra uma issue descrevendo o problema ou a proposta.
+2. Crie uma branch específica para a alteração.
+3. Inclua ou atualize testes e documentação.
+4. Abra um pull request explicando o impacto da mudança.
+5. Não inclua chaves privadas, credenciais ou dados reais no repositório.
+
+## Licença e governança
+
+A licença do projeto ainda precisa ser definida e publicada em um arquivo `LICENSE`. A governança deve documentar quem pode atualizar contratos, pausar funcionalidades, resolver disputas e alterar parâmetros do protocolo.
+
+## Próximos passos
+
+- Definir a rede blockchain e o modelo de custódia.
+- Especificar estados, funções e eventos dos contratos.
+- Definir o modelo de dados e os requisitos de privacidade.
+- Criar o protótipo do contrato e sua suíte de testes.
+- Validar os fluxos com usuários e assessoria jurídica.
+
+## Contato
+
+- **Responsável técnico:** a definir.
+- **Canal de comunicação:** issues do GitHub; canal externo a definir.
