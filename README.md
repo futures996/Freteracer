@@ -206,4 +206,3 @@ A licença do projeto ainda precisa ser definida e registrada em um arquivo `LIC
 
 ---
 
-Se quiser, posso também transformar esse README em uma versão mais comercial, mais técnica ou em um padrão de GitHub mais enxuto, com badges e seções de onboarding para público externo.
