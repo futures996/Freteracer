@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: MIT
-// submit.ts - Simple ERG transfer action
+// submit.ts - Safe ERG transfer action
 
 import {
     OutputBuilder,
@@ -9,74 +9,177 @@ import {
     type InputBox,
 } from '@fleet-sdk/core';
 
-// Ensure the global 'ergo' variable (from the wallet connector) is available.
-declare var ergo: any;
+type SignedTransaction = unknown;
+
+type ErgoWalletApi = {
+    get_change_address(): Promise<string>;
+    get_current_height(): Promise<number>;
+    get_utxos(): Promise<InputBox[]>;
+    sign_tx(transaction: unknown): Promise<SignedTransaction>;
+    submit_tx(transaction: SignedTransaction): Promise<string>;
+};
+
+// The wallet connector is injected by Nautilus/SAFEW in the browser.
+declare const ergo: ErgoWalletApi;
+
+export class ErgoTransferError extends Error {
+    constructor(
+        message: string,
+        public readonly code: string,
+        options?: ErrorOptions,
+    ) {
+        super(message, options);
+        this.name = 'ErgoTransferError';
+    }
+}
+
+let submissionInProgress = false;
+
+function getWallet(): ErgoWalletApi {
+    if (typeof ergo === 'undefined' || !ergo) {
+        throw new ErgoTransferError(
+            'Conecte uma carteira Ergo antes de enviar ERG.',
+            'WALLET_NOT_CONNECTED',
+        );
+    }
+
+    return ergo;
+}
+
+function validateAddress(address: string): void {
+    // Ergo addresses are Base58 encoded and start with 1 (P2PK), 2 (P2SH),
+    // or 3 (P2S). The exact checksum is verified by the wallet when signing.
+    const base58Address = /^[123][1-9A-HJ-NP-Za-km-z]{20,}$/;
+
+    if (!address || address.trim() !== address || !base58Address.test(address)) {
+        throw new ErgoTransferError(
+            'O endereço de destino não é um endereço Ergo válido.',
+            'INVALID_ADDRESS',
+        );
+    }
+}
+
+function validateAmount(amount: bigint, fee: bigint): void {
+    if (typeof amount !== 'bigint' || amount <= 0n) {
+        throw new ErgoTransferError(
+            'O valor da transferência deve ser maior que zero.',
+            'INVALID_AMOUNT',
+        );
+    }
+
+    if (amount < SAFE_MIN_BOX_VALUE) {
+        throw new ErgoTransferError(
+            `O valor deve ser de pelo menos ${SAFE_MIN_BOX_VALUE} nanoERG.`,
+            'AMOUNT_BELOW_MINIMUM',
+        );
+    }
+
+    if (fee <= 0n) {
+        throw new ErgoTransferError('A taxa deve ser maior que zero.', 'INVALID_FEE');
+    }
+}
+
+/**
+ * Selects the smallest practical set of UTXOs that covers the payment and fee.
+ * If the remaining value would be a dust change box, one more UTXO is added.
+ */
+export function selectInputs(
+    inputs: InputBox[],
+    amount: bigint,
+    fee: bigint,
+): InputBox[] {
+    const sorted = [...inputs].sort((a, b) => Number(BigInt(a.value) - BigInt(b.value)));
+    const selected: InputBox[] = [];
+    let selectedValue = 0n;
+
+    for (const input of sorted) {
+        selected.push(input);
+        selectedValue += BigInt(input.value);
+
+        const remaining = selectedValue - amount - fee;
+        if (remaining >= 0n && (remaining === 0n || remaining >= SAFE_MIN_BOX_VALUE)) {
+            return selected;
+        }
+    }
+
+    throw new ErgoTransferError(
+        'Saldo insuficiente para cobrir o valor e a taxa da transação.',
+        'INSUFFICIENT_FUNDS',
+    );
+}
 
 /**
  * Sends ERG to a target address.
- * @param targetAddress - The Ergo address to receive the funds.
- * @param amount - Amount in nanoERG to send (must be >= SAFE_MIN_BOX_VALUE).
- * @returns Transaction ID if successful, otherwise null.
+ *
+ * Errors are intentionally thrown so the UI can distinguish wallet rejection,
+ * validation errors, and insufficient funds instead of receiving a generic null.
  */
 export async function submit(
     targetAddress: string,
     amount: bigint,
-): Promise<string | null> {
-    console.log('🚀 Starting ERG transfer', { targetAddress, amount: amount.toString() });
+    fee: bigint = RECOMMENDED_MIN_FEE_VALUE,
+): Promise<string> {
+    if (submissionInProgress) {
+        throw new ErgoTransferError(
+            'Já existe uma transferência em andamento.',
+            'SUBMISSION_IN_PROGRESS',
+        );
+    }
+
+    validateAddress(targetAddress);
+    validateAmount(amount, fee);
+
+    const wallet = getWallet();
+    submissionInProgress = true;
 
     try {
-        // 1. Gather wallet data
-        console.log('Fetching wallet data...');
-        const changeAddress = await ergo.get_change_address();
+        const [changeAddress, creationHeight, walletInputs] = await Promise.all([
+            wallet.get_change_address(),
+            wallet.get_current_height(),
+            wallet.get_utxos(),
+        ]);
+
         if (!changeAddress) {
-            throw new Error('Could not get the change address from the wallet.');
+            throw new ErgoTransferError(
+                'A carteira não forneceu um endereço de troco.',
+                'MISSING_CHANGE_ADDRESS',
+            );
         }
-        console.log(`Change address: ${changeAddress}`);
 
-        const creationHeight = await ergo.get_current_height();
-        console.log(`Current blockchain height: ${creationHeight}`);
-
-        const inputs: InputBox[] = await ergo.get_utxos();
-        if (!inputs || inputs.length === 0) {
-            throw new Error('No UTXOs found in the wallet for the transaction.');
+        if (!walletInputs?.length) {
+            throw new ErgoTransferError(
+                'Nenhum UTXO disponível na carteira.',
+                'NO_UTXOS',
+            );
         }
-        const totalInputValue = inputs.reduce((sum, box) => sum + BigInt(box.value), 0n);
-        console.log(`Found ${inputs.length} UTXOs with total value ${totalInputValue} nanoERG.`);
 
-        // 2. Build the output box for the transfer
-        if (amount < SAFE_MIN_BOX_VALUE) {
-            throw new Error(`Amount must be at least ${SAFE_MIN_BOX_VALUE} nanoERG (minimum box value).`);
-        }
-        const paymentOutput = new OutputBuilder(amount, targetAddress);
-        console.log('Payment output built.');
-
-        // 3. Build and sign the transaction
+        const inputs = selectInputs(walletInputs, amount, fee);
         const unsignedTx = new TransactionBuilder(creationHeight)
             .from(inputs)
-            .to(paymentOutput)
+            .to(new OutputBuilder(amount, targetAddress))
             .sendChangeTo(changeAddress)
-            .payFee(RECOMMENDED_MIN_FEE_VALUE)
+            .payFee(fee)
             .build();
-        console.log('Unsigned transaction (Fleet SDK):', unsignedTx);
 
-        const txToSign = unsignedTx.toEIP12Object();
-        console.log('Unsigned transaction (EIP-12):', txToSign);
+        const signedTx = await wallet.sign_tx(unsignedTx.toEIP12Object());
+        const txId = await wallet.submit_tx(signedTx);
 
-        console.log('Requesting signature from wallet...');
-        const signedTx = await ergo.sign_tx(txToSign);
-        console.log('Transaction signed:', signedTx);
+        if (!txId) {
+            throw new ErgoTransferError(
+                'A carteira não retornou o ID da transação.',
+                'MISSING_TRANSACTION_ID',
+            );
+        }
 
-        console.log('Submitting transaction to network...');
-        const txId = await ergo.submit_tx(signedTx);
-        console.log(`✅ Transaction submitted! ID: ${txId}`);
         return txId;
     } catch (error) {
-        console.error('❌ Error during ERG transfer');
-        if (error instanceof Error) {
-            console.error(`Message: ${error.message}`);
-            console.error(`Stack: ${error.stack}`);
-        }
-        console.error('Full error object:', error);
-        return null;
+        if (error instanceof ErgoTransferError) throw error;
+
+        // Do not log signed transactions or UTXOs. Wallet errors may contain a
+        // useful user-facing message (for example, when signing is rejected).
+        const message = error instanceof Error ? error.message : 'Falha ao enviar a transação.';
+        throw new ErgoTransferError(message, 'TRANSACTION_FAILED', { cause: error });
+    } finally {
+        submissionInProgress = false;
     }
 }
