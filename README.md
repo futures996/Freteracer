@@ -1,6 +1,8 @@
 # FreteRacer
 
-Plataforma para conectar empresas, transportadoras e caminhoneiros por meio de mini-contratos inteligentes on-chain, com pagamentos auditáveis e controle de garantia, parcelas e liberação de valores por etapa.
+![FreteRacer](./assets/freteracer-banner.svg)
+
+Plataforma para conectar empresas, transportadoras e caminhoneiros por meio de mini-contratos inteligentes on-chain, com pagamentos auditáveis e controle de garantia, parcelas e liberação de valores.
 
 Este repositório reúne a interface web do projeto, suporte para interação com carteira digital e a base de contratos inteligentes e documentação de arquitetura da Rede FreteRacer.
 
@@ -23,7 +25,7 @@ O projeto combina:
 
 ## Status do projeto
 
-Este repositório está em fase de protótipo / desenvolvimento inicial. A interface atual demonstra interações com carteira e blockchain, enquanto a parte de contratos e regras de negócio continua sendo estruturada e validada.
+Este repositório está em fase de protótipo / desenvolvimento inicial. A interface atual demonstra interações com carteira e blockchain, enquanto a parte de contratos e regras de negócio continua em evolução.
 
 ## Principais funcionalidades
 
@@ -198,11 +200,10 @@ Contribuições são bem-vindas. Para propor mudanças:
 
 ## Observação importante
 
-Este repositório é um ponto de partida técnico para a plataforma FreteRacer e sua estrutura ainda está evoluindo. A aplicação atual fornece a base de interações com carteira e blockchain, enquanto os fluxos completos de contrato, pagamento e operações logísticas seguem sendo refinados.
+Este repositório é um ponto de partida técnico para a plataforma FreteRacer e sua estrutura ainda está evoluindo. A aplicação atual fornece a base de interações com carteira e blockchain, enquadrando-se como protótipo funcional inicial para validação de conceito e arquitetura.
 
 ## Licença
 
 A licença do projeto ainda precisa ser definida e registrada em um arquivo `LICENSE` no repositório.
 
 ---
-

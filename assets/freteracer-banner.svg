@@ -1,0 +1,95 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1600 600" role="img" aria-labelledby="title desc">
+  <title id="title">FreteRacer banner</title>
+  <desc id="desc">Banner do projeto FreteRacer com visual de logística, blockchain e contrato inteligente.</desc>
+
+  <defs>
+    <linearGradient id="bg" x1="0" x2="1" y1="0" y2="1">
+      <stop offset="0%" stop-color="#061A2B"/>
+      <stop offset="55%" stop-color="#0A273A"/>
+      <stop offset="100%" stop-color="#07141D"/>
+    </linearGradient>
+    <linearGradient id="line" x1="0" x2="1" y1="0" y2="0">
+      <stop offset="0%" stop-color="#38E6B5"/>
+      <stop offset="50%" stop-color="#7BD5FF"/>
+      <stop offset="100%" stop-color="#FFB547"/>
+    </linearGradient>
+    <linearGradient id="truckBody" x1="0" x2="1" y1="0" y2="1">
+      <stop offset="0%" stop-color="#1CC8A8"/>
+      <stop offset="100%" stop-color="#0F8F97"/>
+    </linearGradient>
+    <linearGradient id="panel" x1="0" x2="1" y1="0" y2="1">
+      <stop offset="0%" stop-color="#102A3B"/>
+      <stop offset="100%" stop-color="#0A1B2A"/>
+    </linearGradient>
+    <filter id="shadow" x="-20%" y="-20%" width="140%" height="140%">
+      <feDropShadow dx="0" dy="18" stdDeviation="18" flood-color="#000000" flood-opacity="0.28"/>
+    </filter>
+  </defs>
+
+  <rect width="1600" height="600" fill="url(#bg)"/>
+
+  <g opacity="0.18" stroke="#8EDBFF" stroke-width="1">
+    <path d="M0 120H1600M0 220H1600M0 320H1600M0 420H1600M0 520H1600"/>
+    <path d="M200 0V600M400 0V600M600 0V600M800 0V600M1000 0V600M1200 0V600M1400 0V600"/>
+  </g>
+
+  <circle cx="1250" cy="150" r="175" fill="#1B3450" opacity="0.7"/>
+  <circle cx="1290" cy="260" r="100" fill="#0E2A3F" opacity="0.8"/>
+
+  <g opacity="0.9">
+    <path d="M180 430C420 335 620 360 760 290C930 205 1070 145 1210 175C1325 199 1425 256 1525 320" fill="none" stroke="url(#line)" stroke-width="9" stroke-linecap="round"/>
+    <circle cx="180" cy="430" r="11" fill="#38E6B5"/>
+    <circle cx="760" cy="290" r="12" fill="#7BD5FF"/>
+    <circle cx="1210" cy="175" r="12" fill="#FFB547"/>
+    <circle cx="1525" cy="320" r="11" fill="#38E6B5"/>
+  </g>
+
+  <g filter="url(#shadow)">
+    <rect x="170" y="120" width="420" height="260" rx="26" fill="url(#panel)" stroke="#2E6E8A" stroke-width="2"/>
+    <rect x="205" y="155" width="350" height="18" rx="9" fill="#0D2335"/>
+    <rect x="205" y="193" width="240" height="14" rx="7" fill="#1E475E"/>
+    <rect x="205" y="235" width="120" height="92" rx="18" fill="#0B1F2A" stroke="#2A8F98" stroke-width="2"/>
+    <rect x="355" y="235" width="146" height="92" rx="18" fill="#0B1F2A" stroke="#2A8F98" stroke-width="2"/>
+    <circle cx="265" cy="282" r="28" fill="#38E6B5" opacity="0.9"/>
+    <path d="M247 282l12 12 24-28" fill="none" stroke="#062131" stroke-width="7" stroke-linecap="round" stroke-linejoin="round"/>
+    <rect x="382" y="255" width="92" height="14" rx="7" fill="#2A8F98"/>
+    <rect x="382" y="280" width="72" height="12" rx="6" fill="#1D5572"/>
+    <rect x="382" y="302" width="85" height="12" rx="6" fill="#1D5572"/>
+  </g>
+
+  <g filter="url(#shadow)">
+    <path d="M810 360h255l44 92H840c-17 0-30-13-30-30v-32c0-17 13-30 30-30Z" fill="url(#truckBody)"/>
+    <path d="M1040 372h60l30 80h-90Z" fill="#133A4D"/>
+    <rect x="880" y="334" width="120" height="42" rx="10" fill="#0D2335"/>
+    <rect x="1005" y="335" width="70" height="30" rx="8" fill="#0D2335"/>
+    <circle cx="858" cy="452" r="36" fill="#091A2C"/>
+    <circle cx="858" cy="452" r="16" fill="#E5F7FF"/>
+    <circle cx="1040" cy="452" r="36" fill="#091A2C"/>
+    <circle cx="1040" cy="452" r="16" fill="#E5F7FF"/>
+    <path d="M835 344l42-42h125l26 42" fill="none" stroke="#B4F6E9" stroke-width="9" stroke-linecap="round" stroke-linejoin="round"/>
+    <circle cx="990" cy="357" r="12" fill="#FFD166"/>
+  </g>
+
+  <g filter="url(#shadow)">
+    <path d="M1185 365l80-120h120l-38 120h-162Z" fill="#102D42" stroke="#4AD4C3" stroke-width="2"/>
+    <path d="M1240 245l44-50h78l-19 50h-103Z" fill="#0B2237" stroke="#4AD4C3" stroke-width="2"/>
+    <path d="M1218 370l36-120h56l-24 120h-68Z" fill="#0D2735"/>
+    <path d="M1304 370l38-120h54l-18 120h-74Z" fill="#0D2735"/>
+    <path d="M1212 353h160" stroke="#54EBC9" stroke-width="8" stroke-linecap="round"/>
+    <circle cx="1266" cy="381" r="8" fill="#54EBC9"/>
+    <circle cx="1334" cy="381" r="8" fill="#FFB547"/>
+  </g>
+
+  <g>
+    <rect x="1150" y="120" width="290" height="152" rx="20" fill="#0C1F2E" stroke="#2E6E8A" stroke-width="2" opacity="0.9"/>
+    <text x="1188" y="177" font-size="32" font-family="Arial, Helvetica, sans-serif" font-weight="700" fill="#EAFBFF">FreteRacer</text>
+    <text x="1188" y="221" font-size="20" font-family="Arial, Helvetica, sans-serif" fill="#8FD6FF">Logística inteligente on-chain</text>
+    <rect x="1188" y="238" width="178" height="10" rx="5" fill="url(#line)"/>
+  </g>
+
+  <g>
+    <text x="185" y="525" font-size="52" font-family="Arial, Helvetica, sans-serif" font-weight="700" fill="#EAFBFF">FreteRacer</text>
+    <text x="620" y="525" font-size="28" font-family="Arial, Helvetica, sans-serif" fill="#8FD6FF">Escrow • pagamentos por marco • rastreabilidade</text>
+  </g>
+</svg>
+
