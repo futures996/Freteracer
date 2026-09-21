@@ -1,198 +1,41 @@
-# ergo-basics / template
+FreteRacer Rede FreteRacer — README aprimoradoFreteRacer conecta empresas, transportadoras e caminhoneiros por meio de mini‑contratos inteligentes on‑chain, permitindo pagamentos P2P auditáveis em criptoativos variados e stablecoins. O mesmo fluxo cobre pagamento de frete e pagamento da carga, com suporte a split payments, oráculos para verificação e integração com gateways fiat.Visão GeralPropósito
+Automatizar contratação, execução e pagamento de fretes e cargas com segurança, rastreabilidade e baixa fricção.Público alvo
+Operadores logísticos, transportadoras, caminhoneiros autônomos, marketplaces de cargas e integradores ERP/TMS.Diferencial
+Mini‑contratos configuráveis que aceitam múltiplos tokens, stablecoins e rotas de conversão, com auditoria on‑chain e mecanismos de disputa e reembolso.Recursos PrincipaisRecursoBenefícioObservaçãoMini‑contratos on‑chainAutomação de marcos e liberação de fundosSuporta ERC‑20/BEP‑20 e tokens nativosStablecoinsEstabilidade de preço para contratosRecomendado para valores contratuaisSplit paymentsPagamento simultâneo a motorista e fornecedorIdeal para frete + carga + seguroOráculosValidação de eventos off‑chain e preçosRedundância recomendadaGateways fiatOn‑ramp e off‑ramp para liquidação em reaisKYC e taxas externasAuditoriaHistórico imutável para complianceLogs on‑chain + off‑chain para investigaçãoComo funciona o fluxo de pagamentoCriação do mini‑contrato
+Contratante define origem, destino, valor, token aceito, marcos, beneficiários e política de disputa.Depósito em garantia
+Valor é bloqueado no contrato no token escolhido; stablecoins mitigam volatilidade.Execução e verificação
+Marcos validados por eventos on‑chain, assinaturas de partes ou oráculos (ex.: prova de entrega, telemetria).Liberação automática e split
+Ao cumprir marcos, o contrato libera pagamentos ao motorista e ao fornecedor da carga conforme regras de split.Disputa e reembolso
+Em caso de desacordo, fluxo de arbitragem acionado; fallback para reembolso ou retenção até resolução.Auditoria
+Metadados on‑chain registram token, quantia, taxas e timestamps para prova e conformidade.Exemplo simplificado de contrato em pseudocódigo SoliditysolidityCópia// Pseudocódigo ilustrativo
+contract MiniFrete {
+  address public contratante;
+  address[] public beneficiarios; // motorista, fornecedor, seguradora
+  IERC20 public token; // suporta stablecoins e ERC20
+  uint256 public total;
+  mapping(uint => Milestone) public milestones;
 
-A batteries-included **SvelteKit starter for Ergo dApps**. Clone it, swap in your
-logic, and you get a browser app with wallet connection, a component library, a
-dark/light theme, and — when you want an agent or a backend to drive it — a clear
-path to an **MCP server** and a sealed **Celaut `.service`** microVM exposing the
-same surface over HTTP + REST, with a **three-signer** structure (browser / seed /
-unsigned).
+  function depositar(uint256 amount) external {
+    token.transferFrom(msg.sender, address(this), amount);
+  }
 
-The bundled example app is a minimal **"Send ERG"** screen, so you can see the
-wallet → build-tx → sign → submit loop end to end before replacing it.
+  function confirmarMarco(uint id) external {
+    require(milestones[id].status == Pending);
+    milestones[id].status = Completed;
+    // split automático entre beneficiários conforme configuração
+    token.transfer(beneficiarios[0], shareDriver);
+    token.transfer(beneficiarios[1], shareSupplier);
+  }
 
----
-
-## Features
-
-- **SvelteKit + Vite + TypeScript**, static-adapter build (deploys to GitHub Pages).
-- **Wallet integration** via `wallet-svelte-component` + the injected `ergo` (Nautilus/EIP-12) connector.
-- **Fleet SDK** (`@fleet-sdk/core`, `@fleet-sdk/compiler`) for building transactions and compiling **ErgoScript**.
-- **shadcn-svelte UI** (bits-ui + Tailwind): dialogs, dropdowns, cards, forms, calendar, carousel, etc.
-- **Dark/light theme** — a one-click toggle button with a rotating Sun/Moon icon (`mode-watcher`).
-- **Agent-ready**: a documented recipe to expose your library as an MCP server and a Celaut microVM — see [`MCP.md`](./MCP.md).
-
----
-
-## Quick start
-
-```bash
+  function abrirDisputa() external {
+    // lógica de arbitragem off‑chain/on‑chain
+  }
+}Integração com ergo-basics SvelteKit starterBase incluída
+Use o template SvelteKit com wallet connection, UI shadcn, tema dark/light e caminho claro para expor a lógica via MCP server e Celaut .service.O que aproveitarWallet integration para conectar carteiras e assinar transações.Fleet SDK para construir transações e compilar scripts.Three signer structure para operar em browser, agente Node ou modo unsigned.MCP server e Celaut microVM para expor operações de leitura e escrita de forma segura.Quick start comandosbashCópiagit clone https://github.com/seu-usuario/freteracer.git
+cd freteracer
 npm install
-npm run dev        # http://localhost:5173
-npm run build      # static build → ./build
-npm run preview    # serve the production build locally
-npm run deploy     # build + publish ./build to GitHub Pages (gh-pages)
-npm run check      # svelte-check (types)
-npm run test       # vitest
-```
-
----
-
-## Project structure
-
-```
-src/
-  app.css                     # Tailwind layers + theme design tokens (:root / .dark)
-  routes/
-    +layout.svelte            # mounts <ModeWatcher/> (theme) and the app
-    +page.svelte / App.svelte # the example "Send ERG" UI
-    Theme.svelte              # the dark/light toggle button
-  lib/
-    common/                   # wallet stores, constants, helpers
-    components/               # SettingsModal + the shadcn-svelte ui/ library
-    ergo/
-      envs.ts                 # network id, explorer + web-explorer URIs
-      utils.ts                # ergo helpers
-      actions/submit.ts       # example: build + sign + submit an ERG transfer
-      contracts/              # (add your ErgoScript .es files here — see below)
-static/                       # static assets
-```
-
-When you add an agent/backend surface, two more folders appear (recipe in [`MCP.md`](./MCP.md)):
-
-```
-mcp/        # stdio MCP server: core.mjs (reads) + lib.mjs (signers) + writes.mjs + tools.mjs + server.mjs
-.service/   # Celaut microVM: server-http.mjs (/health, /mcp, /api/*) + Dockerfile + service.json + start.sh
-```
-
----
-
-## Wallet & transactions (browser)
-
-The example action shows the full browser path — it uses the injected `ergo`
-connector to gather inputs, then builds with Fleet SDK and asks the wallet to
-sign + submit:
-
-```ts
-// src/lib/ergo/actions/submit.ts (abridged)
-const inputs = await ergo.get_utxos();
-const height = await ergo.get_current_height();
-const unsigned = new TransactionBuilder(height)
-  .from(inputs)
-  .to(new OutputBuilder(amount, targetAddress))
-  .sendChangeTo(await ergo.get_change_address())
-  .payFee(RECOMMENDED_MIN_FEE_VALUE)
-  .build();
-const signed = await ergo.sign_tx(unsigned.toEIP12Object());
-return await ergo.submit_tx(signed);
-```
-
-This is the **NautilusSigner** path. To let a Node agent or a backend run the same
-operation without a browser, swap the signing strategy — that's the three-signer
-structure.
-
----
-
-## The three-signer structure
-
-Signing is **swappable** so the same operation works in the browser, from an
-autonomous Node agent, and in key-less build-only mode:
-
-| Signer | Runs in | Behavior | Key material |
-|---|---|---|---|
-| **NautilusSigner** | Browser | `ergo.*` connector signs + submits | In the user's extension |
-| **SeedSigner** | Node / agent | Derives from a BIP-39 mnemonic, signs **and submits** | A mnemonic in env (never in code) |
-| **UnsignedSigner** | Anywhere | Builds the tx, returns the **unsigned EIP-12** for an external wallet | **None** |
-
-Reads need no signer. Writes select one **from the environment**
-(`APP_SIGNER_MODE=seed|unsigned`, default `unsigned` so a key-less agent is safe).
-
-> ⚠️ **Derivation gotcha:** `@fleet-sdk/wallet`'s `ErgoHDKey.fromMnemonic` derives
-> keys a **non-standard** way — a seed signer built on it signs from a *different
-> address* than Nautilus. Derive with `@scure/bip39` + `@scure/bip32` (standard)
-> and bridge into `ErgoHDKey`. Reuse the reference `SeedSigner` from
-> `reputation-system` rather than re-rolling it.
-
-Full implementation (the `makeSigner()` factory, env table, and `*_with_signer`
-wiring) is in **[`MCP.md` §3–§4](./MCP.md)**.
-
----
-
-## MCP server
-
-Expose your library's read + write surface to any MCP-aware client (Claude, IDEs,
-agents). One shared registry (`tools.mjs`) feeds both a local **stdio** server
-(`npm run mcp`) and the networked `.service`, so the transports never drift. Each
-write returns a submitted `txId` (seed mode) or an unsigned tx (unsigned mode).
-
-→ Step-by-step in **[`MCP.md` §1–§5](./MCP.md)**.
-
----
-
-## Celaut `.service` folder
-
-The `.service/` folder packages the app as a **sealed Celaut microVM** that nodes
-can distribute and run. `server-http.mjs` binds `0.0.0.0:8080` and serves:
-
-- `GET /health` — liveness probe
-- `POST /mcp` — the MCP tool surface over Streamable HTTP
-- `GET|POST /api/*` — a plain **REST** mirror (reads via GET, writes via POST using the configured signer)
-
-…alongside `Dockerfile`, `service.json` (port, entrypoint, network sealed to the
-Explorer host), `start.sh`, and `pack_config.json`.
-
-**Dependency pinning matters:** pin the library to the canonical upstream
-(`github:reputation-systems/reputation-system`) or **vendor a built tarball** into
-the `.service` — never a fork feature branch (it can be deleted and break installs).
-
-→ Full layout + the pinning rules in **[`MCP.md` §6–§7](./MCP.md)**.
-
----
-
-## ErgoScript contracts
-
-For anything beyond simple transfers you'll add **ErgoScript** contracts. Put the
-sources under `src/lib/ergo/contracts/` as `.es` files, import them as raw strings,
-and compile with `@fleet-sdk/compiler` (already a dependency):
-
-```ts
-import { compile } from '@fleet-sdk/compiler';
-import { blake2b256, hex } from '@fleet-sdk/crypto';
-import MY_SCRIPT from './contracts/my_contract.es?raw';
-
-// Compile to an ErgoTree (pin the script version your contract targets).
-const tree = compile(MY_SCRIPT, { version: 1 });
-
-const contractAddress  = tree.toAddress().encode();        // P2S address to send funds to
-const templateHash     = hex.encode(blake2b256(tree.template)); // for Explorer box search (tree.template is a Uint8Array)
-```
-
-Notes:
-- Contracts that reference another contract's hash (e.g. a registry pointing at a
-  governance script) compile the dependency first, then string-substitute its
-  `blake2b256` hash before compiling the parent — see `reputation-system/src/lib/envs.ts`
-  for a worked example.
-- Keep the compiled **template hash** handy: the Explorer's
-  `/boxes/unspent/search` endpoint requires `ergoTreeTemplateHash` to filter your
-  contract's boxes.
-- Reads in `mcp/core.mjs` use exactly that search — so the contract layer and the
-  agent layer share one source of truth.
-
----
-
-## Theme (dark/light)
-
-`Theme.svelte` is a single toggle button (Sun ↔ Moon, rotate + scale cross-fade)
-wired to `mode-watcher`. `<ModeWatcher/>` lives in `+layout.svelte`, Tailwind runs
-in `darkMode: ["class"]`, and the palette is defined as HSL design tokens in
-`src/app.css` (`:root` for light, `.dark` for dark) — restyle the whole app by
-editing those tokens.
-
----
-
-## Documentation
-
-- **[`MCP.md`](./MCP.md)** — how to add the MCP server + Celaut `.service` with the three-signer structure (the deep dive this README links to).
-
-## License
-
-MIT
+npm run dev
+npx hardhat compileArquitetura e segurançaCamadas
+Frontend SvelteKit, backend orquestrador, smart contracts, oráculos e gateways fiat.Segurança
+Auditoria externa de contratos, testes automatizados, multisig para operações administrativas, timelocks para upgrades e bug bounty.Escalabilidade
+Uso de L2 ou sidechains para reduzir custos de gas; meta‑transações e relayers para melhor UX.Boas práticas de pagamentoPreferir stablecoins para contratos de alto valor.Registrar metadados on‑chain para auditoria.Oferecer rotas de liquidez e swaps para conversão quando necessário.Implementar oráculos redundantes para evitar manipulação de preços.Habilitar split payments para pagar frete, fornecedor e seguro em uma única execução.Documentação e contribuiçãoDocumentação inclui API, exemplos de payload, templates de contratos e guia MCP.Como contribuir abra issues, envie PRs com testes e documentação.Governança definir regras para tokens utilitários e upgrades.Licença MIT.Chamadas à açãoTeste o fluxo em testnet com stablecoins de teste.Integre seu ERP usando webhooks e SDKs.Participe abrindo issues, propondo melhorias e executando pilotos.
