@@ -1,4 +1,4 @@
-import { writable } from 'svelte/store';
+import { writable, type Writable } from 'svelte/store';
 import { browser } from '$app/environment';
 import {
     DEFAULT_EXPLORER_URI_TX,
@@ -6,43 +6,67 @@ import {
     DEFAULT_EXPLORER_URI_ADDR
 } from './constants';
 
+export interface UserToken {
+    address: string;
+    symbol: string;
+    name?: string;
+    decimals?: number;
+    balance?: string;
+}
+
 // Wallet stores
 export const address = writable<string | null>(null);
 export const network = writable<string | null>(null);
-export const connected = writable<boolean>(false);
+export const connected = writable(false);
 export const balance = writable<number | null>(null);
 
 // Token cache for user tokens
-export const user_tokens = writable<Map<string, any>>(new Map());
+export const user_tokens = writable<Map<string, UserToken>>(new Map());
 
 // Helper function to create a persistent store
-function createPersistentStore<T>(key: string, defaultValue: T) {
-    let initial = defaultValue;
+function createPersistentStore<T>(
+    key: string,
+    defaultValue: T
+): Writable<T> {
+    let initialValue = defaultValue;
 
     if (browser) {
-        const storedValue = localStorage.getItem(key);
-        
-        // Check if value exists and isn't the string "undefined" which breaks JSON.parse
-        if (storedValue && storedValue !== "undefined" && storedValue !== "null") {
-            try {
-                initial = JSON.parse(storedValue);
-            } catch (e) {
-                // If parsing fails, fail silently and stick with defaultValue
-                // This "heals" the corruption automatically
-                console.warn(`Corrupted storage for ${key}, resetting to default.`);
+        try {
+            const storedValue = localStorage.getItem(key);
+
+            if (
+                storedValue &&
+                storedValue !== 'undefined' &&
+                storedValue !== 'null'
+            ) {
+                initialValue = JSON.parse(storedValue) as T;
             }
+        } catch (error) {
+            console.warn(
+                `Não foi possível ler o valor persistido para "${key}".`,
+                error
+            );
+
+            localStorage.removeItem(key);
         }
     }
 
-    const store = writable<T>(initial);
+    const store = writable<T>(initialValue);
 
     if (browser) {
-        store.subscribe(value => {
-            // NEVER write "undefined" to storage
-            if (value === undefined) {
-                localStorage.removeItem(key);
-            } else {
+        store.subscribe((value) => {
+            try {
+                if (value === undefined) {
+                    localStorage.removeItem(key);
+                    return;
+                }
+
                 localStorage.setItem(key, JSON.stringify(value));
+            } catch (error) {
+                console.warn(
+                    `Não foi possível salvar o valor persistido para "${key}".`,
+                    error
+                );
             }
         });
     }
