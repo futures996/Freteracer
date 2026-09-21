@@ -1,195 +1,132 @@
 # FreteRacer — Contratos inteligentes
 
-Contratos inteligentes e documentação da **Rede FreteRacer**, uma plataforma para conectar empresas de logística e caminhoneiros por meio de acordos digitais auditáveis.
+Esta pasta contém o contrato de demonstração do escrow do FreteRacer. O código abaixo é direcionado a **testnet** e ainda precisa de testes automatizados, revisão independente e auditoria antes de custodiar valores reais.
 
-> **Status:** conceitual / em desenvolvimento. Os fluxos e parâmetros descritos neste documento ainda precisam ser validados antes de qualquer uso em produção.
+## Arquivo principal
 
-## Visão geral
+- `MiniContract.sol`: escrow de ETH para um único transportador, com depósito, marcos sequenciais, liberação de pagamentos, cancelamento e disputa resolvida por maioria de 2 entre 3 árbitros.
 
-A Rede FreteRacer pretende representar acordos de transporte em contratos inteligentes, permitindo:
+## Regras do `MiniContract`
 
-- criar e aceitar contratos entre empresas e prestadores;
-- bloquear valores em garantia (escrow);
-- liberar pagamentos conforme marcos da operação;
-- registrar evidências e eventos para auditoria;
-- tratar cancelamentos, falhas e disputas conforme regras previamente definidas.
+### Participantes
 
-A blockchain deve armazenar somente os dados necessários para a execução e a auditoria. Dados pessoais, rotas, documentos e outras informações sensíveis devem permanecer fora da cadeia, protegidos por controles de acesso adequados.
+- **Owner**: endereço que implanta o contrato e deposita os fundos.
+- **Carrier**: transportador que confirma a conclusão dos marcos e recebe os pagamentos.
+- **Árbitros**: exatamente três endereços distintos definidos no deploy. Não podem ser o owner nem o carrier.
 
-## Modelos de pagamento
+### Marcos sequenciais
 
-| Modelo | Descrição | Uso recomendado |
-| --- | --- | --- |
-| Pagamento único on-chain | A empresa deposita o valor total; o contrato libera o pagamento após a conclusão do serviço. | Contratos simples entre uma empresa e um caminhoneiro. |
-| Pagamento por marcos | O valor é dividido em parcelas associadas a etapas da operação. | Rotas longas ou com entregas parciais. |
-| Pagamento entre múltiplas partes | Várias empresas contribuem para o contrato e recebem ou pagam conforme uma regra definida. | Cargas consolidadas e operações compartilhadas. |
-| Liquidação off-chain com prova on-chain | A transferência ocorre fora da blockchain; o contrato registra hashes, assinaturas ou provas verificáveis. | Reduzir custos mantendo rastreabilidade. |
-| Pagamento P2P | As partes transferem valores diretamente entre carteiras, enquanto o contrato registra o acordo e seus eventos. | Operações em que as partes dispensam custódia on-chain. |
+Os marcos são cadastrados no construtor com uma descrição e um valor. O contrato mantém `nextMilestone`, o índice do próximo marco permitido:
 
-A escolha do modelo deve considerar custos, liquidez, disponibilidade de carteiras, requisitos legais e risco operacional. Nenhum modelo deve ser habilitado em produção sem testes e revisão jurídica.
+1. o carrier chama `markMilestoneCompleted(nextMilestone)`;
+2. o owner valida a entrega e chama `releaseMilestone(nextMilestone)`;
+3. o pagamento é enviado ao carrier;
+4. `nextMilestone` avança para o marco seguinte.
 
-## Regras do contrato
+Não é possível concluir ou liberar um marco posterior antes do anterior. Essa regra reduz inconsistências no fluxo operacional, mas não substitui a validação de evidências fora da blockchain.
 
-Cada contrato deve definir, no mínimo:
+## Funções públicas
 
-- **Partes:** endereços ou identificadores das empresas, prestadores e demais participantes.
-- **Valor e moeda:** ativo utilizado, valor total, parcelas e eventuais taxas.
-- **Marcos:** etapas, responsáveis, evidências exigidas e valor de cada liberação.
-- **Prazo:** datas de início, conclusão, expiração e janela para contestação.
-- **Garantia:** valor depositado, condições de bloqueio e regras de saque.
-- **Cancelamento:** condições para cancelamento e cálculo de reembolso.
-- **Disputa:** autoridade ou mecanismo de arbitragem, prazos e poderes de cada participante.
-- **Evidências:** tipo de documento aceito e hash registrado no contrato.
-- **Eventos:** alterações de estado, depósitos, liberações, reembolsos e decisões de disputa.
+### `constructor(address carrier, address[3] arbiters, string[] descriptions, uint256[] values)`
 
-As regras devem ser determinísticas, documentadas e compatíveis com as limitações da rede escolhida. Um orquestrador off-chain pode sugerir ou validar eventos, mas não deve conseguir movimentar valores sem autorização prevista no contrato.
+Cria o escrow. Calcula `totalValue` pela soma dos valores dos marcos e valida endereços, tamanhos dos arrays e valores diferentes de zero.
 
-## Exemplo de operação multiempresa
+### `receive()` e `deposit()`
 
-1. As empresas A e B definem uma divisão de custos e responsabilidades de 60% e 40%.
-2. Cada empresa deposita sua parcela no contrato.
-3. O caminhoneiro executa os marcos definidos e envia as evidências necessárias.
-4. O contrato, ou uma autoridade autorizada conforme as regras, valida cada marco.
-5. Os pagamentos são liberados proporcionalmente ao cumprimento dos marcos.
-6. Em caso de contestação, os valores permanecem bloqueados até a resolução da disputa.
+Recebem ETH somente do owner. O total depositado não pode ultrapassar `totalValue`. Cada depósito emite `Deposited`.
 
-## Arquitetura prevista
+### `markMilestoneCompleted(uint256 idx)`
 
-1. **Frontend**
-   - Painel web para empresas criarem contratos e acompanharem operações.
-   - Aplicativo leve para caminhoneiros aceitarem contratos e confirmarem marcos.
-2. **Backend e orquestrador**
-   - API para gerenciar usuários, contratos, evidências e estados fora da cadeia.
-   - Consumidor de eventos para acompanhar transações e atualizar o estado da operação.
-3. **Contratos inteligentes**
-   - Criação e aceite do contrato.
-   - Depósito em garantia.
-   - Liberação por marcos.
-   - Cancelamento, reembolso e disputa.
-4. **Armazenamento**
-   - Banco de dados para dados operacionais.
-   - Armazenamento de documentos fora da cadeia, como IPFS ou serviço equivalente.
-   - Hashes e referências verificáveis registrados na blockchain.
-5. **Monitoramento**
-   - Logs, alertas, métricas e trilhas de auditoria.
+Somente o carrier pode chamar. Aceita exclusivamente o índice armazenado em `nextMilestone` e marca o marco como concluído.
 
-## Fluxos principais
+### `releaseMilestone(uint256 idx)`
 
-### Depósito em garantia
+Somente o owner pode chamar. Exige que o marco esteja concluído, financiado e seja o próximo da sequência. Atualiza o estado antes da transferência e envia o valor ao carrier usando `_safeTransfer`.
 
-A empresa deposita o valor acordado no contrato. O valor fica bloqueado até que um marco seja validado, uma disputa seja resolvida ou uma regra de expiração seja acionada.
+### `raiseDispute(string reason)`
 
-### Liberação por marco
+Owner ou carrier podem abrir uma disputa. Enquanto `disputed` for verdadeiro, não são permitidas liberações, saques ou cancelamento.
 
-O responsável envia a confirmação e as evidências do marco. Após a validação definida no contrato, o valor correspondente é liberado ao prestador.
+### `voteDispute(bool carrierWins)`
 
-### Cancelamento e reembolso
+Somente um dos três árbitros pode votar, uma vez por rodada. Dois votos com o mesmo resultado encerram a disputa:
 
-O contrato deve especificar quem pode cancelar, quais prazos se aplicam e como o saldo será distribuído. Essas regras devem ser testadas para evitar perda ou bloqueio indevido de valores.
+- `carrierWins == true`: todo o saldo atual é enviado ao carrier;
+- `carrierWins == false`: todo o saldo atual é devolvido ao owner.
 
-### Disputa
+A decisão é registrada em `DisputeResolved`. A arbitragem é uma regra simples de demonstração; em produção, avalie multisig, timelock, recurso, identidade dos árbitros e requisitos jurídicos.
 
-Enquanto uma disputa estiver aberta, os valores relacionados devem permanecer bloqueados. A resolução deve registrar a decisão, a autoridade responsável e os pagamentos ou reembolsos resultantes.
+### `withdrawRemaining(address payable to)`
 
-## Segurança e privacidade
+Permite ao owner retirar somente saldo excedente ao compromisso dos marcos ainda não pagos. Não pode ser usado durante disputa ou após cancelamento.
 
-- Nunca armazene chaves privadas em código, arquivos versionados ou variáveis sem proteção.
-- Use carteiras institucionais, HSM ou serviço de custódia quando necessário.
-- Exija assinaturas para ações sensíveis e valide nonce, prazo e domínio da mensagem.
-- Restrinja funções administrativas e utilize controle de acesso com múltiplas assinaturas quando apropriado.
-- Não grave dados pessoais ou documentos diretamente na blockchain.
-- Use TLS em trânsito e criptografia em repouso para dados off-chain.
-- Teste contratos com testes unitários, testes de integração, fuzzing e análise estática.
-- Faça revisão independente e auditoria de segurança antes de disponibilizar contratos com valores reais.
-- Defina procedimentos para atualização, pausa de emergência e recuperação de incidentes.
+### `cancelAndRefund()`
 
-## Tecnologias consideradas
+Permite ao owner cancelar antes de qualquer marco ser liberado. O saldo é devolvido ao owner e o contrato fica permanentemente cancelado.
 
-As tecnologias abaixo são opções, não dependências definitivas do projeto:
+### `milestonesCount()`
 
-- **Contratos:** Solidity em uma rede compatível com EVM ou Chaincode em Hyperledger Fabric.
-- **Backend:** Node.js/NestJS ou Python/FastAPI.
-- **Frontend:** React para o painel web e React Native para o aplicativo móvel.
-- **Armazenamento:** banco de dados tradicional e IPFS ou Arweave para documentos, quando aplicável.
-- **Carteiras:** WalletConnect, MetaMask ou solução compatível com a rede escolhida.
-- **Mensageria:** Kafka ou RabbitMQ, caso o volume de eventos exija processamento assíncrono.
-- **CI/CD:** GitHub Actions.
+Retorna a quantidade de marcos cadastrados.
 
-A stack definitiva deve ser escolhida após a definição da rede, do modelo de custódia, dos requisitos de privacidade e dos custos operacionais.
+### Variáveis de consulta
 
-## Estrutura do repositório
+- `owner`, `carrier`: participantes principais;
+- `arbiters(0..2)`: árbitros configurados;
+- `totalValue`: soma dos marcos;
+- `deposited`: total depositado pelo owner;
+- `releasedAmount`: total já pago ao carrier;
+- `nextMilestone`: próximo índice permitido;
+- `disputed`, `cancelled`: estado do contrato;
+- `milestones(idx)`: descrição, valor e estados do marco.
 
-```text
-/contracts  Contratos inteligentes e scripts de deploy
-/backend    API e orquestrador
-/mobile     Aplicativo para caminhoneiros
-/web        Painel para empresas
-/docs       Especificações, diagramas e requisitos legais
-/scripts    Utilitários e scripts de migração
-/tests      Testes unitários e de integração
+## Segurança aplicada
+
+- **Ownable simplificado**: `owner` é imutável e funções administrativas usam `onlyOwner`.
+- **SafeTransfer**: `_safeTransfer` usa `call`, valida o endereço e reverte se o envio falhar.
+- **Proteção contra reentrância**: funções que transferem ETH usam `nonReentrant`.
+- **Checks-effects-interactions**: o estado do marco é atualizado antes da chamada externa.
+- **Validação de depósito**: não permite financiar acima de `totalValue`.
+- **Acesso restrito**: carrier e árbitros têm permissões separadas.
+- **Eventos**: depósitos, conclusões, pagamentos, votos, disputas e cancelamentos são auditáveis.
+
+## Exemplo de deploy
+
+Os valores são expressos em wei:
+
+```javascript
+const descriptions = ["Coleta", "Entrega"];
+const values = [ethers.parseEther("0.10"), ethers.parseEther("0.20")];
+const arbiters = [arbiterA, arbiterB, arbiterC];
+
+const contract = await MiniContract.deploy(
+  carrierAddress,
+  arbiters,
+  descriptions,
+  values
+);
+
+await contract.deposit({ value: ethers.parseEther("0.30") });
+await contract.markMilestoneCompleted(0); // carrier
+await contract.releaseMilestone(0);       // owner
 ```
 
-## Roadmap
+## Testes mínimos recomendados
 
-### MVP
+Antes de qualquer deploy com valor real, crie testes para:
 
-- Definir a rede e o ativo de pagamento.
-- Implementar contrato básico com depósito, marcos, liberação e saque.
-- Criar testes automatizados e uma rede de testes.
-- Implementar uma API mínima para criação e acompanhamento de contratos.
+1. deploy com arrays inválidos e árbitros duplicados;
+2. depósito abaixo, igual e acima do total;
+3. tentativa de concluir marco fora da ordem;
+4. tentativa de liberar marco não concluído;
+5. liberação sequencial completa;
+6. reentrância no recebimento de ETH;
+7. disputa com 1 voto e com 2 votos;
+8. voto duplicado do mesmo árbitro;
+9. decisão favorável ao owner e ao carrier;
+10. cancelamento antes e depois de pagamentos;
+11. saques e saldos insuficientes;
+12. falha de transferência para contrato receptor.
 
-### Fase 2
+## Aviso de produção
 
-- Integrar armazenamento de evidências e hashes.
-- Adicionar painel web e aplicativo móvel.
-- Implementar indexação e monitoramento de eventos.
-
-### Fase 3
-
-- Adicionar operações com múltiplas partes.
-- Implementar cancelamento, reembolso e disputa.
-- Avaliar rede L2 ou rede permissionada conforme volume e requisitos de privacidade.
-
-### Fase 4
-
-- Integrar gateways de pagamento.
-- Completar controles fiscais, de compliance e de proteção de dados.
-- Realizar auditoria independente antes da operação em produção.
-
-## Desenvolvimento e testes
-
-Antes de usar uma rede pública:
-
-1. compile os contratos com a versão de compilador fixada;
-2. execute os testes automatizados;
-3. valide os fluxos de sucesso, falha, expiração e disputa;
-4. teste permissões, reentrância, manipulação de preços e outras ameaças relevantes;
-5. faça deploy somente em uma rede de testes;
-6. revise o código e os resultados da auditoria.
-
-Os comandos de instalação, teste e deploy devem ser adicionados aqui quando a stack do projeto estiver definida.
-
-## Contribuição
-
-1. Abra uma issue descrevendo o problema ou a proposta.
-2. Crie uma branch específica para a alteração.
-3. Inclua ou atualize testes e documentação.
-4. Abra um pull request explicando o impacto da mudança.
-5. Não inclua chaves privadas, credenciais ou dados reais no repositório.
-
-## Licença e governança
-
-A licença do projeto ainda precisa ser definida e publicada em um arquivo `LICENSE`. A governança deve documentar quem pode atualizar contratos, pausar funcionalidades, resolver disputas e alterar parâmetros do protocolo.
-
-## Próximos passos
-
-- Definir a rede blockchain e o modelo de custódia.
-- Especificar estados, funções e eventos dos contratos.
-- Definir o modelo de dados e os requisitos de privacidade.
-- Criar o protótipo do contrato e sua suíte de testes.
-- Validar os fluxos com usuários e assessoria jurídica.
-
-## Contato
-
-- **Responsável técnico:** a definir.
-- **Canal de comunicação:** issues do GitHub; canal externo a definir.
+Este contrato não implementa upgrade, expiração, oracle, evidências criptográficas, stablecoins, split payments ou um mecanismo formal de recurso. A votação 2-de-3 também depende da honestidade e disponibilidade dos árbitros. Faça análise estática, fuzzing, testes em testnet, revisão jurídica e auditoria de segurança antes de produção.
